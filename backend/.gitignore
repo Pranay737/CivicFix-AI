@@ -1,0 +1,7 @@
+# Backend Git Ignore
+.env
+target/
+uploads/
+*.log
+.idea/
+*.iml
