@@ -1,0 +1,223 @@
+-- ====================================================================
+-- CivicFix AI - Initial Schema for PostgreSQL (Neon Cloud / Local)
+-- ====================================================================
+
+-- Enable pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- 1. Departments
+CREATE TABLE IF NOT EXISTS departments (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(500),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Categories
+CREATE TABLE IF NOT EXISTS categories (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description VARCHAR(500),
+    department_id BIGINT NOT NULL REFERENCES departments(id),
+    default_priority VARCHAR(20) NOT NULL DEFAULT 'MEDIUM',
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Users
+CREATE TABLE IF NOT EXISTS users (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(150) NOT NULL,
+    phone VARCHAR(30),
+    role VARCHAR(30) NOT NULL,
+    department_id BIGINT REFERENCES departments(id),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Refresh Tokens
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expiry_date TIMESTAMP NOT NULL,
+    revoked BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. SLA Policies
+CREATE TABLE IF NOT EXISTS sla_policies (
+    id BIGSERIAL PRIMARY KEY,
+    category_id BIGINT NOT NULL REFERENCES categories(id),
+    priority VARCHAR(20) NOT NULL,
+    resolution_hours INT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_category_priority UNIQUE (category_id, priority)
+);
+
+-- 6. Complaints
+CREATE TABLE IF NOT EXISTS complaints (
+    id BIGSERIAL PRIMARY KEY,
+    tracking_number VARCHAR(50) NOT NULL UNIQUE,
+    title VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
+    citizen_id BIGINT NOT NULL REFERENCES users(id),
+    category_id BIGINT REFERENCES categories(id),
+    department_id BIGINT REFERENCES departments(id),
+    status VARCHAR(30) NOT NULL DEFAULT 'SUBMITTED',
+    priority VARCHAR(20) NOT NULL DEFAULT 'MEDIUM',
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    address VARCHAR(500),
+    ai_category_suggestion VARCHAR(100),
+    ai_department_suggestion VARCHAR(100),
+    ai_priority_suggestion VARCHAR(20),
+    ai_confidence DOUBLE PRECISION,
+    ai_reasoning TEXT,
+    ai_summary TEXT,
+    is_duplicate BOOLEAN NOT NULL DEFAULT FALSE,
+    duplicate_of_id BIGINT REFERENCES complaints(id),
+    similarity_score DOUBLE PRECISION,
+    embedding vector(768),
+    sla_due_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. Complaint Images
+CREATE TABLE IF NOT EXISTS complaint_images (
+    id BIGSERIAL PRIMARY KEY,
+    complaint_id BIGINT NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+    image_url VARCHAR(1000) NOT NULL,
+    public_id VARCHAR(255),
+    caption VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. Complaint Assignments
+CREATE TABLE IF NOT EXISTS complaint_assignments (
+    id BIGSERIAL PRIMARY KEY,
+    complaint_id BIGINT NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+    officer_id BIGINT NOT NULL REFERENCES users(id),
+    assigned_by_id BIGINT NOT NULL REFERENCES users(id),
+    assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    notes TEXT
+);
+
+-- 9. Complaint Status Histories
+CREATE TABLE IF NOT EXISTS complaint_status_histories (
+    id BIGSERIAL PRIMARY KEY,
+    complaint_id BIGINT NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+    previous_status VARCHAR(30),
+    new_status VARCHAR(30) NOT NULL,
+    changed_by_id BIGINT NOT NULL REFERENCES users(id),
+    comment TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. Resolutions
+CREATE TABLE IF NOT EXISTS resolutions (
+    id BIGSERIAL PRIMARY KEY,
+    complaint_id BIGINT NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+    officer_id BIGINT NOT NULL REFERENCES users(id),
+    notes TEXT NOT NULL,
+    evidence_images_json TEXT,
+    resolved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 11. Feedbacks
+CREATE TABLE IF NOT EXISTS feedbacks (
+    id BIGSERIAL PRIMARY KEY,
+    complaint_id BIGINT NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+    citizen_id BIGINT NOT NULL REFERENCES users(id),
+    rating INT NOT NULL,
+    comment TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_complaint_feedback UNIQUE (complaint_id)
+);
+
+-- 12. Notifications
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    read BOOLEAN NOT NULL DEFAULT FALSE,
+    link_url VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 13. Knowledge Documents (RAG)
+CREATE TABLE IF NOT EXISTS knowledge_documents (
+    id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    source VARCHAR(255),
+    category VARCHAR(100),
+    content TEXT NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 14. Knowledge Chunks (RAG with pgvector)
+CREATE TABLE IF NOT EXISTS knowledge_chunks (
+    id BIGSERIAL PRIMARY KEY,
+    document_id BIGINT NOT NULL REFERENCES knowledge_documents(id) ON DELETE CASCADE,
+    chunk_index INT NOT NULL,
+    chunk_text TEXT NOT NULL,
+    embedding vector(768),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 15. Chat Sessions
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    session_uuid VARCHAR(64) NOT NULL UNIQUE,
+    title VARCHAR(200),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 16. Chat Messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGSERIAL PRIMARY KEY,
+    session_id BIGINT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    sender VARCHAR(20) NOT NULL,
+    message TEXT NOT NULL,
+    citations_json TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 17. Audit Logs
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id),
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(100) NOT NULL,
+    entity_id VARCHAR(100),
+    details TEXT,
+    ip_address VARCHAR(50),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_complaints_citizen ON complaints(citizen_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_dept ON complaints(department_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status);
+CREATE INDEX IF NOT EXISTS idx_complaints_tracking ON complaints(tracking_number);
+CREATE INDEX IF NOT EXISTS idx_complaints_created ON complaints(created_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_doc ON knowledge_chunks(document_id);
+
+-- Vector HNSW indexes (with ops class)
+CREATE INDEX IF NOT EXISTS idx_complaints_embedding ON complaints USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding ON knowledge_chunks USING hnsw (embedding vector_cosine_ops);
