@@ -13,7 +13,7 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}")
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:5180,http://localhost:5181,http://localhost:3000,http://127.0.0.1:5173,https://civic-fix-ai-nine.vercel.app}")
     private String allowedOrigins;
 
     @Bean
@@ -24,18 +24,20 @@ public class CorsConfig {
                 .filter(s -> !s.isEmpty())
                 .toList();
 
-        // Support explicit origins and flexible dev patterns
+        // Support explicit origins and flexible dev/prod patterns
         List<String> originPatterns = Arrays.asList(
                 "http://localhost:[*]",
                 "http://127.0.0.1:[*]",
                 "http://localhost:*",
                 "http://127.0.0.1:*",
-                "https://*.onrender.com"
+                "https://*.vercel.app",
+                "https://*.onrender.com",
+                "https://*.*"
         );
 
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedOriginPatterns(originPatterns);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
         configuration.setAllowCredentials(true);

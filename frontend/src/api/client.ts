@@ -6,7 +6,7 @@ export const API_BASE_URL = rawBackendUrl ? `${rawBackendUrl}/api/v1` : '/api/v1
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 45000,
   headers: {
     'Content-Type': 'application/json',
   },

@@ -39,10 +39,12 @@ export const RegisterPage: React.FC = () => {
         setErrorMsg(errors);
       } else if (err.response?.data?.message) {
         setErrorMsg(err.response.data.message);
+      } else if (typeof err.response?.data === 'string' && err.response.data.length < 200) {
+        setErrorMsg(err.response.data);
       } else if (err.code === 'ERR_NETWORK' || !err.response) {
-        setErrorMsg('Cannot reach backend server. Please verify backend is running on http://localhost:8080.');
+        setErrorMsg('Network error: Cannot reach the backend API. If the cloud service is waking up, please retry in a few moments.');
       } else {
-        setErrorMsg('Registration failed. Please verify your details and try again.');
+        setErrorMsg(err.message || 'Registration failed. Please verify your details and try again.');
       }
     } finally {
       setIsLoading(false);
