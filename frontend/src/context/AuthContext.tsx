@@ -82,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await authApi.login(email, password);
       localStorage.setItem('civicfix_access_token', res.accessToken);
       localStorage.setItem('civicfix_refresh_token', res.refreshToken);
+      localStorage.setItem('civicfix_user', JSON.stringify(res.user));
       setUser(res.user);
       return res.user;
     } finally {
@@ -95,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await authApi.register(data);
       localStorage.setItem('civicfix_access_token', res.accessToken);
       localStorage.setItem('civicfix_refresh_token', res.refreshToken);
+      localStorage.setItem('civicfix_user', JSON.stringify(res.user));
       setUser(res.user);
       return res.user;
     } finally {
@@ -107,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await authApi.logout(refreshToken);
     localStorage.removeItem('civicfix_access_token');
     localStorage.removeItem('civicfix_refresh_token');
+    localStorage.removeItem('civicfix_user');
     setUser(null);
   };
 

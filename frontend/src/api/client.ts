@@ -1,9 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api/v1';
+const rawBackendUrl = (import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+export const BACKEND_URL = rawBackendUrl;
+export const API_BASE_URL = rawBackendUrl ? `${rawBackendUrl}/api/v1` : '/api/v1';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },

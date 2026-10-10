@@ -29,15 +29,19 @@ public class KnowledgeBaseService {
     private final KnowledgeDocumentRepository documentRepository;
     private final KnowledgeChunkRepository chunkRepository;
     private final EmbeddingClient embeddingClient;
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
 
     @PostConstruct
     public void initDefaultIndex() {
         try {
-            long chunkCount = chunkRepository.count();
-            if (chunkCount == 0) {
-                log.info("Knowledge chunks table is empty. Initializing embeddings for seeded civic documents...");
-                reindexAll();
-            }
+            transactionTemplate.execute(status -> {
+                long chunkCount = chunkRepository.count();
+                if (chunkCount == 0) {
+                    log.info("Knowledge chunks table is empty. Initializing embeddings for seeded civic documents...");
+                    reindexAll();
+                }
+                return null;
+            });
         } catch (Exception e) {
             log.warn("Knowledge base auto-indexing skipped on startup: {}", e.getMessage());
         }

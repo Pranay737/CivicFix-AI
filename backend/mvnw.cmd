@@ -1,4 +1,10 @@
 @echo off
-set "JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot"
-set "PATH=%JAVA_HOME%\bin;C:\Users\harik\.tools\apache-maven-3.9.9\bin;%PATH%"
-"C:\Users\harik\.tools\apache-maven-3.9.9\bin\mvn.cmd" %*
+if not defined JAVA_HOME (
+    if exist "C:\Program Files\JetBrains\IntelliJ IDEA 2025.2\jbr" (
+        set "JAVA_HOME=C:\Program Files\JetBrains\IntelliJ IDEA 2025.2\jbr"
+    )
+)
+set "MAVEN_BIN=C:\Users\S VISHAL\.m2\wrapper\dists\apache-maven-3.9.11-bin\6mqf5t809d9geo83kj4ttckcbc\apache-maven-3.9.11\bin"
+set "PATH=%JAVA_HOME%\bin;%MAVEN_BIN%;%PATH%"
+"%MAVEN_BIN%\mvn.cmd" %*
+

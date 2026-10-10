@@ -24,8 +24,7 @@ public class CivicFixApplication {
         File[] candidateFiles = new File[] {
                 new File(".env"),
                 new File("../.env"),
-                new File("../../.env"),
-                new File("C:/Users/harik/.gemini/antigravity/scratch/civicfix-ai/.env")
+                new File("../../.env")
         };
 
         for (File envFile : candidateFiles) {

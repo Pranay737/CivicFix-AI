@@ -10,6 +10,7 @@ import java.util.List;
 
 @Repository
 public interface KnowledgeDocumentRepository extends JpaRepository<KnowledgeDocument, Long> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"chunks"})
     List<KnowledgeDocument> findAllByActiveTrue();
     Page<KnowledgeDocument> findAll(Pageable pageable);
 }

@@ -28,15 +28,22 @@ export const RegisterPage: React.FC = () => {
     try {
       await register({
         fullName: `${formData.firstName} ${formData.lastName}`.trim(),
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password,
-        phone: formData.phoneNumber,
+        phone: formData.phoneNumber.trim() || undefined,
       });
       navigate('/citizen');
     } catch (err: any) {
-      setErrorMsg(
-        err.response?.data?.message || 'Registration failed. Email might already be registered.'
-      );
+      if (err.response?.data?.validationErrors) {
+        const errors = Object.values(err.response.data.validationErrors).join(', ');
+        setErrorMsg(errors);
+      } else if (err.response?.data?.message) {
+        setErrorMsg(err.response.data.message);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setErrorMsg('Cannot reach backend server. Please verify backend is running on http://localhost:8080.');
+      } else {
+        setErrorMsg('Registration failed. Please verify your details and try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -166,18 +173,18 @@ export const RegisterPage: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm shadow-md shadow-primary-600/25 transition-all flex items-center justify-center gap-2 mt-4"
+            className="w-full h-12 rounded-full bg-[#0071E3] hover:bg-[#0077ED] active:scale-[0.98] text-white font-medium text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
-              <>
-                <LoadingSpinner size="sm" />
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
                 <span>Registering Account...</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <UserPlus className="w-4 h-4" />
                 <span>Create Account</span>
-              </>
+              </div>
             )}
           </button>
         </form>
